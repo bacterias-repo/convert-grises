@@ -20,8 +20,8 @@ async def convert_image(file: UploadFile = File(...)):
     
     # Guardar la imagen en el repositorio de GitHub
     img_name = os.path.splitext(file.filename)[0]
-    cv2.imwrite(f"{img_name}_gray.jpg", gray)
-    repo_url = "https://github.com/usuario/repositorio.git"
+    cv2.imwrite(f"image_gray.jpg", gray)
+    repo_url = "https://github.com/bacterias-repo/images-bacterias.git"
     repo_dir = "/ruta/a/repositorio/"
     os.chdir(repo_dir)
     os.system("git pull")
