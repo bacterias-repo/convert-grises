@@ -1,3 +1,5 @@
 {
-  "redirects": [{ "source": "/", "destination": "/api" }]
+  "routes": [
+    { "src": "/convert-to-grayscale", "methods": ["POST"] }
+  ]
 }
