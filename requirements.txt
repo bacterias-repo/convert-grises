@@ -1,3 +1,6 @@
+numpy
+os
 opencv-python-headless
-requests
+fastapi
+uvicorn
 PyGithub
