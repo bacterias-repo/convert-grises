@@ -1,45 +1,36 @@
+import os
 import cv2
 import requests
-from io import BytesIO
 from github import Github
 
-def grayscale_image(url):
-    # Descarga la imagen desde la URL
-    response = requests.get(url)
-    img = cv2.imdecode(np.frombuffer(response.content, np.uint8), 1)
+def convert_to_gray(image_path):
+    image = cv2.imread(image_path)
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    return gray_image
 
-    # Convierte la imagen a escala de grises
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+def upload_to_github(image_path, repo_name, repo_branch, github_token):
+    g = Github(github_token)
+    user = g.get_user()
+    repo = user.get_repo(repo_name)
+    branch = repo.get_branch(repo_branch)
+    file_path = os.path.basename(image_path)
+    with open(image_path, 'rb') as file:
+        content = file.read()
+    repo.create_file(file_path, f'Added {file_path}', content, branch=branch.name)
+    return f'Image uploaded to {repo_name} repository in {repo_branch} branch.'
 
-    # Crea un objeto BytesIO para guardar la imagen en memoria
-    buffer = BytesIO()
-    cv2.imwrite(buffer, gray)
-    buffer.seek(0)
+def convert_to_grayscale(event):
+    image_url = event['body-json']['image_url']
+    github_token = event['headers']['x-github-token']
+    repo_name = event['headers']['x-github-repo']
+    repo_branch = event['headers']['x-github-branch']
+    image_filename = os.path.basename(image_url)
+    image_response = requests.get(image_url)
+    image_path = f'/tmp/{image_filename}'
+    with open(image_path, 'wb') as file:
+        file.write(image_response.content)
+    gray_image = convert_to_gray(image_path)
+    cv2.imwrite(image_path, gray_image)
+    upload_to_github(image_path, repo_name, repo_branch, github_token)
+    return f'Image {image_filename} converted to grayscale and uploaded to GitHub repository.'
 
-    return buffer
-
-def upload_to_github(buffer):
-    # Autenticación con la API key de GitHub
-    g = Github("tu_api_key")
-
-    # Accede al repositorio y a la carpeta de imágenes
-    repo = g.get_repo("tu_usuario/tu_repositorio")
-    contents = repo.get_contents("images")
-
-    # Guarda la imagen en la carpeta de imágenes
-    filename = "grayscale_image.jpg"
-    repo.create_file(f"images/{filename}", f"Convirtiendo imagen a escala de grises", buffer.getvalue(), branch="main")
-
-    # Retorna la URL de la imagen en el repositorio de GitHub
-    return f"https://raw.githubusercontent.com/tu_usuario/tu_repositorio/main/images/{filename}"
-
-def main(request):
-    # Obtiene la URL de la imagen a convertir
-    url = request.args.get('url')
-
-    # Convierte la imagen a escala de grises y la guarda en GitHub
-    buffer = grayscale_image(url)
-    url_github = upload_to_github(buffer)
-
-    # Retorna la URL de la imagen en escala de grises en GitHub
-    return {'url': url_github}
